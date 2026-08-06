@@ -144,27 +144,30 @@ class StudioCaptureScreen extends StatelessWidget {
                 Positioned.fill(
                   child: isAllCaptured
                       ? _buildPrintOptionsPanel(context, vm)
-                      : ValueListenableBuilder(
-                          valueListenable: vm.liveView,
-                          builder: (context, liveViewBytes, child) {
-                            if (liveViewBytes == null) {
-                              return const Center(
-                                child: CircularProgressIndicator(),
+                      : RepaintBoundary(
+                          child: ValueListenableBuilder(
+                            valueListenable: vm.liveView,
+                            builder: (context, liveViewBytes, child) {
+                              if (liveViewBytes == null) {
+                                return const Center(
+                                  child: CircularProgressIndicator(),
+                                );
+                              }
+                              return Transform(
+                                alignment: Alignment.center,
+                                transform: vm.isMirror
+                                    ? Matrix4.rotationY(math.pi)
+                                    : Matrix4.identity(),
+                                child: Image.memory(
+                                  liveViewBytes,
+                                  fit: BoxFit.cover,
+                                  gaplessPlayback: true,
+                                  filterQuality: FilterQuality.none,
+                                  isAntiAlias: false,
+                                ),
                               );
-                            }
-                            return Transform(
-                              alignment: Alignment.center,
-                              transform: vm.isMirror
-                                  ? Matrix4.rotationY(math.pi)
-                                  : Matrix4.identity(),
-                              child: Image.memory(
-                                liveViewBytes,
-                                fit: BoxFit.cover,
-                                gaplessPlayback: true,
-                                filterQuality: FilterQuality.low,
-                              ),
-                            );
-                          },
+                            },
+                          ),
                         ),
                 ),
 
@@ -178,7 +181,16 @@ class StudioCaptureScreen extends StatelessWidget {
                 ),
 
                 // LAYER 2: COUNTDOWN MENGAMBANG
-                if (vm.countdown > 0) _buildCountdownOverlay(vm),
+                // Uses ValueListenableBuilder to avoid full Consumer rebuild on each tick
+                Positioned.fill(
+                  child: ValueListenableBuilder<int>(
+                    valueListenable: vm.countdownNotifier,
+                    builder: (context, countdown, _) {
+                      if (countdown <= 0) return const SizedBox.shrink();
+                      return _buildCountdownContent(countdown);
+                    },
+                  ),
+                ),
 
                 // LAYER 3: PREVIEW FOTO YANG BARU DIAMBIL
                 if (vm.tempPreviewPhoto != null) _buildPreviewOverlay(vm),
@@ -329,127 +341,137 @@ class StudioCaptureScreen extends StatelessWidget {
   }
 
   Widget _buildSessionTimer(CaptureViewModel vm) {
-    final color = _sessionTimerColor(vm.sessionDuration);
-    final progress =
-        (vm.sessionDuration / CaptureViewModel.totalSessionDuration)
-            .clamp(0.0, 1.0);
+    // Uses its own ValueListenableBuilder so timer ticks don't rebuild the
+    // entire screen via Consumer. Only this timer widget rebuilds each second.
+    return RepaintBoundary(
+      child: ValueListenableBuilder<int>(
+        valueListenable: vm.sessionDurationNotifier,
+        builder: (context, duration, _) {
+          final color = _sessionTimerColor(duration);
+          final progress =
+              (duration / CaptureViewModel.totalSessionDuration)
+                  .clamp(0.0, 1.0);
 
-    return Container(
-      width: 230,
-      padding: const EdgeInsets.fromLTRB(16, 9, 16, 10),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.68),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: color.withOpacity(0.65), width: 1.4),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.timer_outlined, color: color, size: 22),
-              const SizedBox(width: 9),
-              Text(
-                vm.sessionDuration <= 60 ? 'SEGERA BERAKHIR' : 'SISA WAKTU',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.72),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.7,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                _formatDuration(vm.sessionDuration),
-                style: TextStyle(
-                  color: color,
-                  fontSize: 21,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.2,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 7),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 5,
-              backgroundColor: Colors.white.withOpacity(0.13),
-              valueColor: AlwaysStoppedAnimation<Color>(color),
+          return Container(
+            width: 230,
+            padding: const EdgeInsets.fromLTRB(16, 9, 16, 10),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.68),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: color.withOpacity(0.65), width: 1.4),
             ),
-          ),
-        ],
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.timer_outlined, color: color, size: 22),
+                    const SizedBox(width: 9),
+                    Text(
+                      duration <= 60 ? 'SEGERA BERAKHIR' : 'SISA WAKTU',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.72),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.7,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      _formatDuration(duration),
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 21,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 7),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 5,
+                    backgroundColor: Colors.white.withOpacity(0.13),
+                    valueColor: AlwaysStoppedAnimation<Color>(color),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildCountdownOverlay(CaptureViewModel vm) {
-    return Positioned.fill(
-      child: Container(
-        color: Colors.black.withOpacity(0.48),
-        padding: const EdgeInsets.only(right: 350),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.62),
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: Colors.white.withOpacity(0.22)),
-                ),
-                child: const Text(
-                  'SIAPKAN POSE',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 2.2,
-                  ),
-                ),
+  /// Countdown overlay content — called from ValueListenableBuilder.
+  /// Takes the countdown value directly instead of reading from ViewModel,
+  /// so only this widget rebuilds on each countdown tick.
+  Widget _buildCountdownContent(int countdown) {
+    return Container(
+      color: Colors.black.withOpacity(0.48),
+      padding: const EdgeInsets.only(right: 350),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.62),
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(color: Colors.white.withOpacity(0.22)),
               ),
-              const SizedBox(height: 22),
-              Container(
-                width: 230,
-                height: 230,
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.38),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 7),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppConfig.primaryColor.withOpacity(0.45),
-                      blurRadius: 48,
-                      spreadRadius: 8,
-                    ),
-                  ],
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  '${vm.countdown}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 132,
-                    height: 1,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Foto akan diambil otomatis',
+              child: const Text(
+                'SIAPKAN POSE',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.82),
+                  color: Colors.white,
                   fontSize: 18,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 2.2,
                 ),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 22),
+            Container(
+              width: 230,
+              height: 230,
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.38),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 7),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppConfig.primaryColor.withOpacity(0.45),
+                    blurRadius: 48,
+                    spreadRadius: 8,
+                  ),
+                ],
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                '$countdown',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 132,
+                  height: 1,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Foto akan diambil otomatis',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.82),
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -962,7 +984,9 @@ class _CameraFlashEffectState extends State<CameraFlashEffect>
     super.initState();
     _controller = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 150));
-    _opacity = Tween<double>(begin: 0.0, end: 1.0)
+    // Tween goes to 0.9 for bright white flash effect.
+    // Using FadeTransition below avoids widget rebuilds on every animation tick.
+    _opacity = Tween<double>(begin: 0.0, end: 0.9)
         .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
     if (widget.isTriggered) {
       _triggerFlash();
@@ -991,15 +1015,13 @@ class _CameraFlashEffectState extends State<CameraFlashEffect>
 
   @override
   Widget build(BuildContext context) {
+    // FadeTransition animates opacity at the render-object level,
+    // avoiding widget tree rebuilds on every animation frame.
+    // ColoredBox is lighter than Container for a single solid color.
     return IgnorePointer(
-      child: AnimatedBuilder(
-        animation: _opacity,
-        builder: (context, child) {
-          return Container(
-            color: Colors.white
-                .withOpacity(_opacity.value * 0.9), // Kilat putih cerah
-          );
-        },
+      child: FadeTransition(
+        opacity: _opacity,
+        child: const ColoredBox(color: Colors.white),
       ),
     );
   }
