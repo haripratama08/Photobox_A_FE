@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:photobox_pro/services/socket_services.dart';
@@ -56,6 +57,17 @@ void main(List<String> arguments) async {
   );
 }
 
+class AppScrollBehavior extends MaterialScrollBehavior {
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.trackpad,
+        PointerDeviceKind.stylus,
+        PointerDeviceKind.unknown,
+      };
+}
+
 class PhotoboxProApp extends StatelessWidget {
   const PhotoboxProApp({Key? key}) : super(key: key);
 
@@ -63,13 +75,12 @@ class PhotoboxProApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Photobox Pro',
+      scrollBehavior: AppScrollBehavior(),
       theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF1C0800),
+        scaffoldBackgroundColor: const Color(0xFF0F0F0F),
         primaryColor: AppConfig.primaryColor,
         colorScheme: ColorScheme.dark(
           primary: AppConfig.primaryColor,
-          secondary: const Color(0xFFFFC800),
-          surface: const Color(0xFF321005),
         ),
       ),
       home: const WelcomeScreen(),
