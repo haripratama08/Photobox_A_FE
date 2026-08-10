@@ -1,10 +1,5 @@
-<<<<<<< HEAD
 import 'dart:io' show Directory, File, Platform, Process, ProcessException;
 import 'dart:ui' show PointerDeviceKind;
-
-=======
-import 'dart:ui';
->>>>>>> e2a5d3216613cccda00a065bd8df35d0bdba5d91
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:photobox_pro/services/socket_services.dart';
@@ -77,6 +72,12 @@ void main(List<String> arguments) async {
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     await windowManager.show();
     await windowManager.focus();
+
+    // Terapkan kembali sesudah window benar-benar tampil. Beberapa window
+    // manager Linux baru menetapkan monitor/bounds final pada tahap ini.
+    await _configureLinuxTouchscreen();
+    await Future<void>.delayed(const Duration(seconds: 2));
+    await _configureLinuxTouchscreen();
   });
 
   runApp(
@@ -90,10 +91,8 @@ void main(List<String> arguments) async {
   );
 }
 
-<<<<<<< HEAD
 Future<void> _configureLinuxTouchscreen() async {
-  if (!Platform.isLinux ||
-      (Platform.environment['XDG_SESSION_TYPE'] ?? 'x11') != 'x11') {
+  if (!Platform.isLinux) {
     return;
   }
 
@@ -143,17 +142,6 @@ Future<void> _configureLinuxTouchscreen() async {
     // dijalankan dari sesi Wayland atau mesin tanpa paket xinput.
     debugPrint('[TOUCH] Konfigurasi touchscreen gagal: $error');
   }
-=======
-class AppScrollBehavior extends MaterialScrollBehavior {
-  @override
-  Set<PointerDeviceKind> get dragDevices => {
-        PointerDeviceKind.touch,
-        PointerDeviceKind.mouse,
-        PointerDeviceKind.trackpad,
-        PointerDeviceKind.stylus,
-        PointerDeviceKind.unknown,
-      };
->>>>>>> e2a5d3216613cccda00a065bd8df35d0bdba5d91
 }
 
 class PhotoboxProApp extends StatelessWidget {
@@ -163,11 +151,7 @@ class PhotoboxProApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Photobox Pro',
-<<<<<<< HEAD
       scrollBehavior: const PhotoboxScrollBehavior(),
-=======
-      scrollBehavior: AppScrollBehavior(),
->>>>>>> e2a5d3216613cccda00a065bd8df35d0bdba5d91
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: const Color(0xFF0F0F0F),
         primaryColor: AppConfig.primaryColor,
@@ -193,5 +177,7 @@ class PhotoboxScrollBehavior extends MaterialScrollBehavior {
         PointerDeviceKind.stylus,
         PointerDeviceKind.invertedStylus,
         PointerDeviceKind.mouse,
+        PointerDeviceKind.trackpad,
+        PointerDeviceKind.unknown,
       };
 }

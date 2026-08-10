@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -u
 
-if [ "${XDG_SESSION_TYPE:-x11}" != "x11" ]; then
-  echo "[TOUCH] Sesi bukan X11; pemetaan xinput dilewati."
+# LXDE/lightdm kadang tidak mengisi XDG_SESSION_TYPE meskipun DISPLAY X11
+# tersedia. Yang dibutuhkan xinput adalah DISPLAY aktif, bukan variabel itu.
+if [ -z "${DISPLAY:-}" ]; then
+  echo "[TOUCH] DISPLAY X11 tidak tersedia; pemetaan xinput dilewati."
   exit 0
 fi
 
@@ -45,7 +47,6 @@ while IFS= read -r touch_id; do
   touch_device="$(xinput list --name-only "$touch_id" 2>/dev/null || echo "touchscreen")"
 
   xinput enable "$touch_id" >/dev/null 2>&1 || true
-  xinput reattach "$touch_id" 2 >/dev/null 2>&1 || true
   xinput set-prop "$touch_id" 'Device Enabled' 1 >/dev/null 2>&1 || true
 
   if xinput list-props "$touch_id" | grep -q 'libinput Send Events Mode Enabled'; then
@@ -57,9 +58,12 @@ while IFS= read -r touch_id; do
   xinput set-prop "$touch_id" 'Coordinate Transformation Matrix' \
     1 0 0 0 1 0 0 0 1 >/dev/null 2>&1 || true
 
-  if xinput map-to-output "$touch_id" "$touch_output" >/dev/null 2>&1; then
+  map_error="$(xinput map-to-output "$touch_id" "$touch_output" 2>&1)"
+  if [ $? -eq 0 ]; then
     echo "[TOUCH] '$touch_device' dipetakan ke $touch_output."
     configured=$((configured + 1))
+  else
+    echo "[TOUCH] Gagal memetakan '$touch_device' (id=$touch_id): $map_error"
   fi
 
   if [ -n "${TOUCH_MATRIX:-}" ]; then
