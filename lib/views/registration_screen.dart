@@ -240,45 +240,60 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     );
   }
 
-  // Widget custom TextField yang jauh lebih estetik
+  // Widget custom TextField yang ramah touchscreen & membuka keyboard virtual secara presisi
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
     required IconData icon,
   }) {
-    return TextField(
-      controller: controller,
-      readOnly: true,
+    final bool isActive = activeController == controller;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () => setState(() => activeController = controller),
-      style: const TextStyle(
-        color: Colors.white,
-        fontSize: 18,
-        fontWeight: FontWeight.w500,
-      ),
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: Colors.white.withOpacity(0.06), // Efek kaca gelap
-        labelText: label,
-        labelStyle: TextStyle(
-          color: Colors.white.withOpacity(0.5),
-          fontSize: 16,
-        ),
-        prefixIcon: Icon(
-          icon,
-          color: Colors.white.withOpacity(0.7),
-          size: 24,
-        ),
-        contentPadding:
-            const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide.none, // Tanpa border saat tidak aktif
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: const BorderSide(
-            color: Color(0xff0000cd), // Highlight biru saat disentuh
-            width: 2,
+      child: AbsorbPointer(
+        child: TextField(
+          controller: controller,
+          readOnly: true,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
+          ),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: isActive
+                ? const Color(0xff0000cd).withOpacity(0.2)
+                : Colors.white.withOpacity(0.06),
+            labelText: label,
+            labelStyle: TextStyle(
+              color: isActive ? Colors.white : Colors.white.withOpacity(0.5),
+              fontSize: 16,
+            ),
+            prefixIcon: Icon(
+              icon,
+              color: isActive ? const Color(0xff0000cd) : Colors.white.withOpacity(0.7),
+              size: 24,
+            ),
+            contentPadding:
+                const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15),
+              borderSide: const BorderSide(
+                color: Color(0xff0000cd),
+                width: 2,
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15),
+              borderSide: BorderSide(
+                color: isActive ? const Color(0xff0000cd) : Colors.transparent,
+                width: 2,
+              ),
+            ),
           ),
         ),
       ),
