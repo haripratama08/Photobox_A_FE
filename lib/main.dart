@@ -30,7 +30,6 @@ void main(List<String> arguments) async {
   // touch tidak lagi sama dengan koordinat widget. Window tanpa bingkai dengan
   // bounds sebesar monitor terlihat fullscreen, tetapi mempertahankan sistem
   // koordinat input yang stabil.
-  final useNativeFullScreen = AppConfig.fullScreen && !Platform.isLinux;
   final windowBounds = Rect.fromLTWH(
     AppConfig.windowX,
     AppConfig.windowY,
@@ -49,8 +48,14 @@ void main(List<String> arguments) async {
     alwaysOnTop: true,
   );
 
-  await windowManager.waitUntilReadyToShow(windowOptions);
-  await windowManager.setBounds(windowBounds);
+  windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.setBounds(windowBounds);
+    await windowManager.show();
+    if (AppConfig.fullScreen) {
+      await windowManager.setFullScreen(true);
+    }
+    await windowManager.focus();
+  });
   // window_manager tidak mengimplementasikan setIgnoreMouseEvents di Linux.
   // Secara default window GTK tetap menerima event mouse/touch, sehingga
   // pemanggilan ini hanya diperlukan pada platform yang mendukungnya.
@@ -60,25 +65,13 @@ void main(List<String> arguments) async {
 
   // Tentukan monitor dari bounds lebih dahulu, baru aktifkan fullscreen native.
   // Urutan ini juga mencegah fullscreen berpindah ke monitor utama.
-  if (useNativeFullScreen) {
-    await windowManager.setFullScreen(true);
-  }
+  // Fullscreen diterapkan di callback ready-to-show agar surface GLX tidak
+  // diubah lagi sesudah Flutter mulai merender.
 
   // Init Services
   final socketService = SocketService();
   socketService.initSocket();
   final storageService = StorageService();
-
-  WidgetsBinding.instance.addPostFrameCallback((_) async {
-    await windowManager.show();
-    await windowManager.focus();
-
-    // Terapkan kembali sesudah window benar-benar tampil. Beberapa window
-    // manager Linux baru menetapkan monitor/bounds final pada tahap ini.
-    await _configureLinuxTouchscreen();
-    await Future<void>.delayed(const Duration(seconds: 2));
-    await _configureLinuxTouchscreen();
-  });
 
   runApp(
     MultiProvider(
