@@ -5,7 +5,7 @@ import 'package:photobox_pro/widgets/app_close_button.dart';
 import '../viewmodels/frame_selection_viewmodel.dart';
 import 'studio_capture_screen.dart';
 
-class FrameSelectionScreen extends StatelessWidget {
+class FrameSelectionScreen extends StatefulWidget {
   final String userName, userWA, userEmail;
 
   const FrameSelectionScreen({
@@ -14,6 +14,19 @@ class FrameSelectionScreen extends StatelessWidget {
     required this.userWA,
     required this.userEmail,
   }) : super(key: key);
+
+  @override
+  State<FrameSelectionScreen> createState() => _FrameSelectionScreenState();
+}
+
+class _FrameSelectionScreenState extends State<FrameSelectionScreen> {
+  final ScrollController _frameScrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _frameScrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -125,15 +138,40 @@ class FrameSelectionScreen extends StatelessWidget {
       );
     }
 
-    return ListView.builder(
-      physics: const BouncingScrollPhysics(),
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 30),
-      itemCount: vm.frames.length,
-      itemBuilder: (context, index) {
-        final frame = vm.frames[index];
-        return _buildFrameCard(context, frame);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onHorizontalDragUpdate: (details) {
+        if (!_frameScrollController.hasClients) return;
+        final position = _frameScrollController.position;
+        final target = (_frameScrollController.offset - details.delta.dx)
+            .clamp(position.minScrollExtent, position.maxScrollExtent)
+            .toDouble();
+        _frameScrollController.jumpTo(target);
       },
+      onHorizontalDragEnd: (details) {
+        if (!_frameScrollController.hasClients) return;
+        final position = _frameScrollController.position;
+        final target = (_frameScrollController.offset -
+                (details.primaryVelocity ?? 0) * 0.18)
+            .clamp(position.minScrollExtent, position.maxScrollExtent)
+            .toDouble();
+        _frameScrollController.animateTo(
+          target,
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeOut,
+        );
+      },
+      child: ListView.builder(
+        controller: _frameScrollController,
+        physics: const NeverScrollableScrollPhysics(),
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 30),
+        itemCount: vm.frames.length,
+        itemBuilder: (context, index) {
+          final frame = vm.frames[index];
+          return _buildFrameCard(context, frame);
+        },
+      ),
     );
   }
 
@@ -144,9 +182,9 @@ class FrameSelectionScreen extends StatelessWidget {
         MaterialPageRoute(
           builder: (context) => StudioCaptureScreen(
             frameConfig: frame,
-            userName: userName,
-            userWA: userWA,
-            userEmail: userEmail,
+            userName: widget.userName,
+            userWA: widget.userWA,
+            userEmail: widget.userEmail,
           ),
         ),
       ),
