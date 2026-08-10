@@ -28,6 +28,19 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen> {
     super.dispose();
   }
 
+  void _scrollFramesBy(double distance) {
+    if (!_frameScrollController.hasClients) return;
+    final position = _frameScrollController.position;
+    final target = (_frameScrollController.offset + distance)
+        .clamp(position.minScrollExtent, position.maxScrollExtent)
+        .toDouble();
+    _frameScrollController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
@@ -138,39 +151,90 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen> {
       );
     }
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onHorizontalDragUpdate: (details) {
-        if (!_frameScrollController.hasClients) return;
-        final position = _frameScrollController.position;
-        final target = (_frameScrollController.offset - details.delta.dx)
-            .clamp(position.minScrollExtent, position.maxScrollExtent)
-            .toDouble();
-        _frameScrollController.jumpTo(target);
-      },
-      onHorizontalDragEnd: (details) {
-        if (!_frameScrollController.hasClients) return;
-        final position = _frameScrollController.position;
-        final target = (_frameScrollController.offset -
-                (details.primaryVelocity ?? 0) * 0.18)
-            .clamp(position.minScrollExtent, position.maxScrollExtent)
-            .toDouble();
-        _frameScrollController.animateTo(
-          target,
-          duration: const Duration(milliseconds: 280),
-          curve: Curves.easeOut,
-        );
-      },
-      child: ListView.builder(
-        controller: _frameScrollController,
-        physics: const NeverScrollableScrollPhysics(),
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 30),
-        itemCount: vm.frames.length,
-        itemBuilder: (context, index) {
-          final frame = vm.frames[index];
-          return _buildFrameCard(context, frame);
-        },
+    return Stack(
+      children: [
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onHorizontalDragUpdate: (details) {
+            if (!_frameScrollController.hasClients) return;
+            final position = _frameScrollController.position;
+            final target = (_frameScrollController.offset - details.delta.dx)
+                .clamp(position.minScrollExtent, position.maxScrollExtent)
+                .toDouble();
+            _frameScrollController.jumpTo(target);
+          },
+          onHorizontalDragEnd: (details) {
+            if (!_frameScrollController.hasClients) return;
+            final position = _frameScrollController.position;
+            final target = (_frameScrollController.offset -
+                    (details.primaryVelocity ?? 0) * 0.18)
+                .clamp(position.minScrollExtent, position.maxScrollExtent)
+                .toDouble();
+            _frameScrollController.animateTo(
+              target,
+              duration: const Duration(milliseconds: 280),
+              curve: Curves.easeOut,
+            );
+          },
+          child: ListView.builder(
+            controller: _frameScrollController,
+            physics: const NeverScrollableScrollPhysics(),
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 90, vertical: 30),
+            itemCount: vm.frames.length,
+            itemBuilder: (context, index) {
+              final frame = vm.frames[index];
+              return _buildFrameCard(context, frame);
+            },
+          ),
+        ),
+        Positioned(
+          left: 12,
+          top: 0,
+          bottom: 0,
+          child: _buildScrollButton(
+            icon: Icons.chevron_left_rounded,
+            label: 'Frame sebelumnya',
+            onPressed: () => _scrollFramesBy(-420),
+          ),
+        ),
+        Positioned(
+          right: 12,
+          top: 0,
+          bottom: 0,
+          child: _buildScrollButton(
+            icon: Icons.chevron_right_rounded,
+            label: 'Frame berikutnya',
+            onPressed: () => _scrollFramesBy(420),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildScrollButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return Center(
+      child: Semantics(
+        button: true,
+        label: label,
+        child: Material(
+          color: Colors.black.withOpacity(0.72),
+          shape: const CircleBorder(),
+          elevation: 10,
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: onPressed,
+            child: SizedBox(
+              width: 72,
+              height: 72,
+              child: Icon(icon, color: Colors.white, size: 52),
+            ),
+          ),
+        ),
       ),
     );
   }
