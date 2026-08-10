@@ -1,5 +1,7 @@
+import 'dart:io' show Platform;
 import 'dart:ui';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:photobox_pro/config/app_config.dart';
@@ -11,7 +13,8 @@ import 'package:window_manager/window_manager.dart';
 
 void main(List<String> arguments) async {
   WidgetsFlutterBinding.ensureInitialized();
-  await windowManager.ensureInitialized();
+  debugPrint('[APP] Linux touch diagnostic v2 aktif');
+  GestureBinding.instance.pointerRouter.addGlobalRoute(_logPointerEvent);
 
   final configArgument = arguments.firstWhere(
     (argument) => argument.startsWith('--config='),
@@ -20,27 +23,33 @@ void main(List<String> arguments) async {
   final configFile = configArgument.substring('--config='.length);
   await dotenv.load(fileName: configFile);
 
-  final windowOptions = WindowOptions(
-    size: Size(AppConfig.windowWidth, AppConfig.windowHeight),
-    center: false,
-    backgroundColor: Colors.transparent,
-    skipTaskbar: false,
-    title: AppConfig.boxTitle,
-    titleBarStyle: TitleBarStyle.hidden,
-    fullScreen: false,
-    alwaysOnTop: true,
-  );
-
-  windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.setPosition(
-      Offset(AppConfig.windowX, AppConfig.windowY),
+  // Di Linux, runner GTK menyiapkan jendela sebelum FlView/GLX dibuat.
+  // Mengubah bounds/fullscreen melalui plugin setelah surface aktif dapat
+  // memicu GLX BadAccess pada mesin kiosk yang sedang diakses lewat AnyDesk.
+  if (!Platform.isLinux) {
+    await windowManager.ensureInitialized();
+    final windowOptions = WindowOptions(
+      size: Size(AppConfig.windowWidth, AppConfig.windowHeight),
+      center: false,
+      backgroundColor: Colors.transparent,
+      skipTaskbar: false,
+      title: AppConfig.boxTitle,
+      titleBarStyle: TitleBarStyle.hidden,
+      fullScreen: false,
+      alwaysOnTop: true,
     );
-    await windowManager.show();
-    if (AppConfig.fullScreen) {
-      await windowManager.setFullScreen(true);
-    }
-    await windowManager.focus();
-  });
+
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.setPosition(
+        Offset(AppConfig.windowX, AppConfig.windowY),
+      );
+      await windowManager.show();
+      if (AppConfig.fullScreen) {
+        await windowManager.setFullScreen(true);
+      }
+      await windowManager.focus();
+    });
+  }
 
   final socketService = SocketService();
   socketService.initSocket();
@@ -54,6 +63,28 @@ void main(List<String> arguments) async {
       ],
       child: const PhotoboxProApp(),
     ),
+  );
+}
+
+DateTime _lastTouchMoveLog = DateTime.fromMillisecondsSinceEpoch(0);
+
+void _logPointerEvent(PointerEvent event) {
+  if (event.kind != PointerDeviceKind.touch &&
+      event.kind != PointerDeviceKind.stylus &&
+      event.kind != PointerDeviceKind.invertedStylus) {
+    return;
+  }
+
+  final isMove = event is PointerMoveEvent;
+  final now = DateTime.now();
+  if (isMove && now.difference(_lastTouchMoveLog).inMilliseconds < 250) {
+    return;
+  }
+  if (isMove) _lastTouchMoveLog = now;
+
+  debugPrint(
+    '[INPUT] ${event.runtimeType} kind=${event.kind.name} '
+    'pointer=${event.pointer} position=${event.position}',
   );
 }
 
