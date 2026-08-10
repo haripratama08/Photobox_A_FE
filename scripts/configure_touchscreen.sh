@@ -28,7 +28,16 @@ fi
 
 touch_ids=""
 if [ -n "${TOUCH_DEVICE:-}" ]; then
-  touch_ids="$(xinput list --id-only "$TOUCH_DEVICE" 2>/dev/null || true)"
+  # Satu panel touchscreen sering muncul sebagai dua device XInput dengan
+  # nama identik. `xinput list --id-only <nama>` gagal bila namanya ambigu,
+  # jadi ambil seluruh ID yang namanya cocok dari daftar perangkat.
+  if [[ "$TOUCH_DEVICE" =~ ^[0-9]+$ ]]; then
+    touch_ids="$TOUCH_DEVICE"
+  else
+    touch_ids="$(xinput list --short \
+      | grep -iF -- "$TOUCH_DEVICE" \
+      | sed -n 's/.*id=\([0-9][0-9]*\).*/\1/p' || true)"
+  fi
 else
   touch_ids="$(xinput list --short \
     | grep -Ei 'touch|multitouch|egalax|goodix|ilitek|quanta|silead|wave|wch' \
@@ -40,6 +49,8 @@ if [ -z "$touch_ids" ]; then
   xinput list --short
   exit 0
 fi
+
+echo "[TOUCH] Output=$touch_output; ID terdeteksi: $(echo "$touch_ids" | tr '\n' ' ')"
 
 configured=0
 while IFS= read -r touch_id; do
