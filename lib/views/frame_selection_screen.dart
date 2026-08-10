@@ -126,7 +126,7 @@ class FrameSelectionScreen extends StatelessWidget {
     }
 
     return ListView.builder(
-      physics: const BouncingScrollPhysics(), // Animasi scroll lebih mulus
+      physics: const BouncingScrollPhysics(),
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 30),
       itemCount: vm.frames.length,

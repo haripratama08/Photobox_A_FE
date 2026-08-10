@@ -15,11 +15,17 @@ class FrameSelectionViewModel extends ChangeNotifier {
     isLoading = true;
     notifyListeners();
 
-    _socketService.emit('get-frames');
     _socketService.once('frames-list', (data) {
-      frames = List<Map<String, dynamic>>.from(data);
+      frames = (data as List)
+          .map((item) => Map<String, dynamic>.from(item as Map))
+          .where((frame) =>
+              frame['asset_path'] is String && frame['asset_path'].isNotEmpty)
+          .toList();
       isLoading = false;
       notifyListeners();
     });
+
+    // Pasang listener lebih dahulu agar respons cepat dari API tidak terlewat.
+    _socketService.emit('get-frames');
   }
 }
