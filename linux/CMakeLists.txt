@@ -94,11 +94,6 @@ set(INSTALL_BUNDLE_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
   COMPONENT Runtime)
 
-# Keep the X11 touchscreen setup beside the executable so launching the release
-# binary directly configures touch input without requiring a wrapper command.
-install(PROGRAMS "${CMAKE_SOURCE_DIR}/../scripts/configure_touchscreen.sh"
-  DESTINATION "${CMAKE_INSTALL_PREFIX}" COMPONENT Runtime)
-
 install(FILES "${FLUTTER_ICU_DATA_FILE}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
   COMPONENT Runtime)
 
