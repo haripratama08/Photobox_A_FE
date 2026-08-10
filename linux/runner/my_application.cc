@@ -55,6 +55,14 @@ static void my_application_activate(GApplication* application) {
 
   gtk_window_set_default_size(window, 1280, 720);
 
+  // Configure the kiosk window before Flutter creates its GLX surface. Moving
+  // or fullscreening it afterwards can invalidate the active GLX context on
+  // X11 remote-desktop sessions.
+  gtk_window_set_titlebar(window, nullptr);
+  gtk_window_set_decorated(window, FALSE);
+  gtk_window_set_keep_above(window, TRUE);
+  gtk_window_fullscreen(window);
+
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(project, self->dart_entrypoint_arguments);
 

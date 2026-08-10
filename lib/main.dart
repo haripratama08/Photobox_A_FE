@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io' show Platform;
 import 'dart:ui';
 
@@ -67,6 +68,10 @@ void main(List<String> arguments) async {
 }
 
 DateTime _lastTouchMoveLog = DateTime.fromMillisecondsSinceEpoch(0);
+Timer? _linuxTouchReleaseTimer;
+bool _linuxTouchBridgeActive = false;
+Offset _linuxTouchBridgePosition = Offset.zero;
+int _linuxTouchBridgePointer = 900000;
 
 void _logPointerEvent(PointerEvent event) {
   if (event.kind != PointerDeviceKind.touch &&
@@ -86,6 +91,61 @@ void _logPointerEvent(PointerEvent event) {
     '[INPUT] ${event.runtimeType} kind=${event.kind.name} '
     'pointer=${event.pointer} position=${event.position}',
   );
+
+  // Beberapa panel wch.cn pada X11/GTK dilaporkan Flutter sebagai rangkaian
+  // Hover -> Added -> Scale -> Removed, bukan Down -> Move -> Up. Akibatnya
+  // posisi terbaca tetapi tombol Flutter tidak pernah menerima klik. Ubah
+  // hanya PointerScaleEvent bertipe touch menjadi urutan gesture normal.
+  if (Platform.isLinux && event.runtimeType.toString() == 'PointerScaleEvent') {
+    _bridgeLinuxScaleTouch(event.position);
+  }
+}
+
+void _bridgeLinuxScaleTouch(Offset position) {
+  scheduleMicrotask(() {
+    if (!_linuxTouchBridgeActive) {
+      _linuxTouchBridgeActive = true;
+      _linuxTouchBridgePointer++;
+      _linuxTouchBridgePosition = position;
+      GestureBinding.instance.handlePointerEvent(
+        PointerDownEvent(
+          pointer: _linuxTouchBridgePointer,
+          device: _linuxTouchBridgePointer,
+          kind: PointerDeviceKind.touch,
+          position: position,
+        ),
+      );
+      debugPrint('[TOUCH-BRIDGE] down position=$position');
+    } else {
+      final delta = position - _linuxTouchBridgePosition;
+      _linuxTouchBridgePosition = position;
+      if (delta.distanceSquared > 0) {
+        GestureBinding.instance.handlePointerEvent(
+          PointerMoveEvent(
+            pointer: _linuxTouchBridgePointer,
+            device: _linuxTouchBridgePointer,
+            kind: PointerDeviceKind.touch,
+            position: position,
+            delta: delta,
+          ),
+        );
+      }
+    }
+
+    _linuxTouchReleaseTimer?.cancel();
+    _linuxTouchReleaseTimer = Timer(const Duration(milliseconds: 120), () {
+      GestureBinding.instance.handlePointerEvent(
+        PointerUpEvent(
+          pointer: _linuxTouchBridgePointer,
+          device: _linuxTouchBridgePointer,
+          kind: PointerDeviceKind.touch,
+          position: _linuxTouchBridgePosition,
+        ),
+      );
+      debugPrint('[TOUCH-BRIDGE] up position=$_linuxTouchBridgePosition');
+      _linuxTouchBridgeActive = false;
+    });
+  });
 }
 
 class AppScrollBehavior extends MaterialScrollBehavior {
