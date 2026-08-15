@@ -39,6 +39,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   };
 
   Timer? _preflightTimeout;
+  Timer? _preflightRetry;
   Map<String, dynamic> _checks = {};
   bool _checking = true;
   bool _ready = false;
@@ -74,6 +75,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         _ready = payload['ok'] == true;
         _error = payload['error'] as String?;
       });
+      final printer = checks['printer'] is Map
+          ? Map<String, dynamic>.from(checks['printer'] as Map)
+          : <String, dynamic>{};
+      _preflightRetry?.cancel();
+      if (printer['searching'] == true) {
+        _preflightRetry = Timer(const Duration(seconds: 3), _runPreflight);
+      }
     });
     socket.emit('preflight-check');
 
@@ -90,6 +98,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   @override
   void dispose() {
     _preflightTimeout?.cancel();
+    _preflightRetry?.cancel();
     super.dispose();
   }
 
