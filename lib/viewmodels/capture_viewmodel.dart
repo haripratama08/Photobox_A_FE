@@ -117,6 +117,8 @@ class CaptureViewModel extends ChangeNotifier {
     // kolase dengan frame yang sedang dipilih.
     _socketService.emit('session-expired', {
       'userName': userName,
+      'userWA': userWA,
+      'userEmail': userEmail,
       'frameName': frameConfig['name'],
       'printCopies': printCopies,
     });
