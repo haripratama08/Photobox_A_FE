@@ -112,6 +112,14 @@ class CaptureViewModel extends ChangeNotifier {
     isCapturing = false;
     isSessionExpired = true;
     _socketService.emit('stop-liveview');
+    // Jangan membuang foto yang sudah berhasil diambil hanya karena waktu
+    // habis. Backend akan membaca foto mentah pada folder sesi lalu mencetak
+    // kolase dengan frame yang sedang dipilih.
+    _socketService.emit('session-expired', {
+      'userName': userName,
+      'frameName': frameConfig['name'],
+      'printCopies': printCopies,
+    });
     notifyListeners(); // Full rebuild needed to show expired overlay
   }
 
