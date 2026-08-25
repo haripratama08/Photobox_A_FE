@@ -17,7 +17,7 @@ class WelcomeScreen extends StatefulWidget {
 
 class _WelcomeScreenState extends State<WelcomeScreen> {
   static const _brandGold = Color(0xFFFFC800);
-  static const _darkOrange = Color(0xFF5A1707);
+  static const _darkSurface = Color(0xEE12131A);
 
   static const _checkOrder = [
     'api',
@@ -28,14 +28,25 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     'frames',
     'whatsapp'
   ];
+
   static const _checkLabels = {
     'api': 'API / Port',
-    'camera': 'Kamera',
-    'camera_port': 'Konfigurasi port kamera',
-    'printer': 'Printer',
-    'storage': 'Penyimpanan foto',
-    'frames': 'Folder frame',
-    'whatsapp': 'WhatsApp',
+    'camera': 'Kamera Utama',
+    'camera_port': 'Port Kamera',
+    'printer': 'Printer Foto',
+    'storage': 'Penyimpanan Foto',
+    'frames': 'Folder Frame',
+    'whatsapp': 'WhatsApp Service',
+  };
+
+  static const _checkIcons = {
+    'api': Icons.dns_rounded,
+    'camera': Icons.camera_alt_rounded,
+    'camera_port': Icons.settings_input_hdmi_rounded,
+    'printer': Icons.print_rounded,
+    'storage': Icons.folder_special_rounded,
+    'frames': Icons.photo_library_rounded,
+    'whatsapp': Icons.chat_rounded,
   };
 
   Timer? _preflightTimeout;
@@ -115,6 +126,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     return Scaffold(
       body: Stack(
         children: [
+          // Background Image
           Container(
             decoration: BoxDecoration(
               image: DecorationImage(
@@ -123,67 +135,114 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               ),
             ),
           ),
+          // Modern Dark Gradient Overlay
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.transparent,
-                  _darkOrange.withOpacity(0.10),
-                  _darkOrange.withOpacity(0.72),
+                  Colors.black.withOpacity(0.25),
+                  Colors.black.withOpacity(0.55),
+                  const Color(0xFF0A0B10).withOpacity(0.92),
                 ],
-                stops: const [0.0, 0.58, 1.0],
+                stops: const [0.0, 0.5, 1.0],
               ),
             ),
           ),
+          // Main Content
           Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(height: 360),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 60, vertical: 25),
-                    backgroundColor:
-                        _ready ? AppConfig.primaryColor : Colors.grey.shade700,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: _darkOrange.withOpacity(0.78),
-                    disabledForegroundColor: Colors.white70,
-                    elevation: _ready ? 10 : 0,
-                    shadowColor: AppConfig.primaryColor.withOpacity(0.55),
-                    side: BorderSide(
-                      color: _ready ? _brandGold : _brandGold.withOpacity(0.38),
-                      width: 2,
-                    ),
-                    shape: RoundedRectangleBorder(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 280),
+                  // START Button
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(30),
+                      boxShadow: _ready
+                          ? [
+                              BoxShadow(
+                                color: AppConfig.primaryColor.withOpacity(0.55),
+                                blurRadius: 30,
+                                offset: const Offset(0, 8),
+                              )
+                            ]
+                          : [],
+                    ),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 70, vertical: 24),
+                        backgroundColor: _ready
+                            ? AppConfig.primaryColor
+                            : const Color(0xFF2A2C38),
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor:
+                            const Color(0xFF1E202B).withOpacity(0.8),
+                        disabledForegroundColor: Colors.white38,
+                        elevation: _ready ? 12 : 0,
+                        side: BorderSide(
+                          color: _ready
+                              ? _brandGold
+                              : Colors.white.withOpacity(0.12),
+                          width: 2,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                      onPressed: _ready ? _startSession : null,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_checking) ...[
+                            const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.white70,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                          ] else if (_ready) ...[
+                            const Icon(Icons.play_arrow_rounded,
+                                color: Colors.white, size: 28),
+                            const SizedBox(width: 8),
+                          ],
+                          Text(
+                            _checking ? 'MEMERIKSA...' : 'START',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  onPressed: _ready ? _startSession : null,
-                  child: Text(
-                    _checking ? 'MEMERIKSA...' : 'START',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                _buildPreflightPanel(),
-              ],
+                  const SizedBox(height: 24),
+                  // Modern Preflight Panel
+                  _buildPreflightPanel(),
+                  const SizedBox(height: 40),
+                ],
+              ),
             ),
           ),
         ],
       ),
       bottomNavigationBar: Container(
-        height: 80,
+        height: 75,
         decoration: BoxDecoration(
-          color: _darkOrange.withOpacity(0.94),
+          color: const Color(0xEE0D0E14),
           border: Border(
-            top: BorderSide(color: _brandGold.withOpacity(0.42)),
+            top: BorderSide(color: Colors.white.withOpacity(0.1)),
           ),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 30),
@@ -192,12 +251,37 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.circle,
-                    color: _ready ? Colors.greenAccent : _brandGold, size: 16),
-                const SizedBox(width: 10),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _checking
+                        ? _brandGold
+                        : (_ready ? const Color(0xFF00E676) : Colors.redAccent),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _checking
+                            ? _brandGold.withOpacity(0.6)
+                            : (_ready
+                                ? const Color(0xFF00E676).withOpacity(0.6)
+                                : Colors.redAccent.withOpacity(0.6)),
+                        blurRadius: 10,
+                        spreadRadius: 2,
+                      )
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
                 Text(
-                  '${AppConfig.boxTitle} • ${_ready ? 'Siap digunakan' : 'Menunggu pemeriksaan'}',
-                  style: const TextStyle(color: Colors.white70, fontSize: 16),
+                  '${AppConfig.boxTitle} • ${_checking ? 'Memeriksa Sistem...' : (_ready ? 'Siap Digunakan' : 'Perhatian Diperlukan')}',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ],
             ),
@@ -213,67 +297,154 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   Widget _buildPreflightPanel() {
     return Container(
-      width: 430,
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+      width: 480,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: _darkOrange.withOpacity(0.88),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _brandGold.withOpacity(0.48)),
+        color: _darkSurface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: _ready
+              ? const Color(0xFF00E676).withOpacity(0.3)
+              : (_checking
+                  ? _brandGold.withOpacity(0.35)
+                  : Colors.redAccent.withOpacity(0.4)),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
-            color: _darkOrange.withOpacity(0.42),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
+            color: Colors.black.withOpacity(0.6),
+            blurRadius: 32,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header Status Badge & Title
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(
-                _checking
-                    ? Icons.sync_rounded
-                    : (_ready
-                        ? Icons.check_circle_rounded
-                        : Icons.warning_amber_rounded),
-                color: _checking
-                    ? _brandGold
-                    : (_ready ? Colors.greenAccent : _brandGold),
-                size: 21,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  _checking
-                      ? 'Memeriksa kesiapan photobox...'
-                      : (_ready
-                          ? 'Semua komponen wajib siap'
-                          : 'Photobox belum siap digunakan'),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: _checking
+                          ? _brandGold.withOpacity(0.15)
+                          : (_ready
+                              ? const Color(0xFF00E676).withOpacity(0.15)
+                              : Colors.redAccent.withOpacity(0.15)),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _checking
+                          ? Icons.sync_rounded
+                          : (_ready
+                              ? Icons.verified_rounded
+                              : Icons.warning_amber_rounded),
+                      color: _checking
+                          ? _brandGold
+                          : (_ready
+                              ? const Color(0xFF00E676)
+                              : Colors.redAccent),
+                      size: 22,
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _checking
+                            ? 'Pemeriksaan Sistem'
+                            : (_ready
+                                ? 'Semua Komponen Siap'
+                                : 'Sistem Belum Siap'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      Text(
+                        _checking
+                            ? 'Memeriksa perangkat & layanan...'
+                            : (_ready
+                                ? 'Semua modul beroperasi normal'
+                                : 'Periksa komponen berlabel merah/kuning'),
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.5),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
               if (!_checking)
-                IconButton(
-                  tooltip: 'Periksa lagi',
-                  onPressed: _runPreflight,
-                  icon: const Icon(Icons.refresh_rounded,
-                      color: Colors.white70, size: 21),
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: _runPreflight,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.06),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                            color: Colors.white.withOpacity(0.1), width: 1),
+                      ),
+                      child: const Icon(
+                        Icons.refresh_rounded,
+                        color: Colors.white70,
+                        size: 20,
+                      ),
+                    ),
+                  ),
                 ),
             ],
           ),
+
           if (_error != null) ...[
-            const SizedBox(height: 4),
-            Text(_error!,
-                style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.redAccent.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                    color: Colors.redAccent.withOpacity(0.3), width: 1),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline_rounded,
+                      color: Colors.redAccent, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _error!,
+                      style: const TextStyle(
+                          color: Colors.redAccent,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
+
           if (!_checking) ...[
-            const Divider(color: Colors.white12, height: 16),
+            const SizedBox(height: 16),
+            Container(
+              height: 1,
+              color: Colors.white.withOpacity(0.08),
+            ),
+            const SizedBox(height: 12),
             ..._checkOrder.map(_buildCheckRow),
           ],
         ],
@@ -287,34 +458,98 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         : <String, dynamic>{};
     final ok = check['ok'] == true;
     final required = check['required'] != false;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+    final isSearching = check['searching'] == true;
+    final icon = _checkIcons[key] ?? Icons.widgets_rounded;
+    final label = _checkLabels[key] ?? key;
+    final message = check['message']?.toString() ?? 'Tidak ada status';
+
+    Color statusColor;
+    String statusText;
+    if (ok) {
+      statusColor = const Color(0xFF00E676);
+      statusText = message.isNotEmpty && message != 'OK' ? message : 'Ready';
+    } else if (isSearching) {
+      statusColor = _brandGold;
+      statusText = 'Mencari...';
+    } else {
+      statusColor = required ? Colors.redAccent : _brandGold;
+      statusText = message;
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 3.5),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.035),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: ok
+              ? Colors.white.withOpacity(0.05)
+              : statusColor.withOpacity(0.25),
+          width: 1,
+        ),
+      ),
       child: Row(
         children: [
-          Icon(
-            ok ? Icons.check_circle_rounded : Icons.cancel_rounded,
-            color: ok
-                ? Colors.greenAccent
-                : (required ? Colors.redAccent : _brandGold),
-            size: 17,
-          ),
-          const SizedBox(width: 9),
-          Expanded(
-            child: Text(
-              _checkLabels[key] ?? key,
-              style: const TextStyle(color: Colors.white70, fontSize: 13),
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              color: ok ? Colors.white70 : statusColor,
+              size: 16,
             ),
           ),
-          Flexible(
+          const SizedBox(width: 12),
+          Expanded(
             child: Text(
-              check['message']?.toString() ?? 'Tidak ada status',
+              label,
               style: TextStyle(
-                color: ok ? Colors.greenAccent : Colors.white54,
-                fontSize: 12,
+                color: Colors.white.withOpacity(0.9),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.right,
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: statusColor.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: statusColor.withOpacity(0.35),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: statusColor,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 160),
+                  child: Text(
+                    statusText,
+                    style: TextStyle(
+                      color: statusColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

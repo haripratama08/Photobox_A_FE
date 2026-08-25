@@ -890,46 +890,136 @@ class StudioCaptureScreen extends StatelessWidget {
             const SizedBox(height: 50),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [1, 2, 3].map((n) {
-                bool isSelected = vm.printCopies == n;
-                return GestureDetector(
-                  onTap: () => vm.setPrintCopies(n),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    margin: const EdgeInsets.symmetric(horizontal: 15),
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? const Color(0xff0000cd)
-                          : const Color(0xFF1A1A1A),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                          color: isSelected
-                              ? Colors.white
-                              : Colors.white.withOpacity(0.1),
-                          width: isSelected ? 3 : 1.5),
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                  color:
-                                      const Color(0xff0000cd).withOpacity(0.5),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 8))
-                            ]
-                          : [],
-                    ),
-                    child: Center(
-                      child: Text("$n",
-                          style: TextStyle(
-                              fontSize: 36,
-                              color: isSelected ? Colors.white : Colors.white54,
-                              fontWeight: FontWeight.bold)),
+              children: [
+                // Decrement Button (-)
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(50),
+                    onTap: vm.printCopies > 1
+                        ? () => vm.setPrintCopies(vm.printCopies - 1)
+                        : null,
+                    child: Container(
+                      width: 65,
+                      height: 65,
+                      margin: const EdgeInsets.only(right: 12),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: vm.printCopies > 1
+                            ? const Color(0xFF1A1A1A)
+                            : const Color(0xFF121212),
+                        border: Border.all(
+                          color: vm.printCopies > 1
+                              ? Colors.white30
+                              : Colors.white10,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.remove_rounded,
+                        color: vm.printCopies > 1 ? Colors.white : Colors.white24,
+                        size: 32,
+                      ),
                     ),
                   ),
-                );
-              }).toList(),
+                ),
+
+                // Quick Presets: 1, 2, 3, 4, 5, 6
+                ...[1, 2, 3, 4, 5, 6].map((n) {
+                  bool isSelected = vm.printCopies == n;
+                  return GestureDetector(
+                    onTap: () => vm.setPrintCopies(n),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: const EdgeInsets.symmetric(horizontal: 8),
+                      width: 85,
+                      height: 85,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? const Color(0xff0000cd)
+                            : const Color(0xFF1A1A1A),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                            color: isSelected
+                                ? Colors.white
+                                : Colors.white.withOpacity(0.1),
+                            width: isSelected ? 3 : 1.5),
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                    color:
+                                        const Color(0xff0000cd).withOpacity(0.5),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 8))
+                              ]
+                            : [],
+                      ),
+                      child: Center(
+                        child: Text("$n",
+                            style: TextStyle(
+                                fontSize: 32,
+                                color: isSelected ? Colors.white : Colors.white54,
+                                fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  );
+                }).toList(),
+
+                // Increment Button (+)
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(50),
+                    onTap: vm.printCopies < 10
+                        ? () => vm.setPrintCopies(vm.printCopies + 1)
+                        : null,
+                    child: Container(
+                      width: 65,
+                      height: 65,
+                      margin: const EdgeInsets.only(left: 12),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: vm.printCopies < 10
+                            ? const Color(0xFF1A1A1A)
+                            : const Color(0xFF121212),
+                        border: Border.all(
+                          color: vm.printCopies < 10
+                              ? Colors.white30
+                              : Colors.white10,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.add_rounded,
+                        color: vm.printCopies < 10 ? Colors.white : Colors.white24,
+                        size: 32,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
+            if (vm.printCopies > 6) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xff0000cd).withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                  border:
+                      Border.all(color: const Color(0xff0000cd), width: 1.5),
+                ),
+                child: Text(
+                  "Jumlah Cetak: ${vm.printCopies} Lembar",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 60),
             Container(
               decoration: BoxDecoration(boxShadow: [
