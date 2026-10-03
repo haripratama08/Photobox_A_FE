@@ -15,10 +15,8 @@ class WelcomeScreen extends StatefulWidget {
   State<WelcomeScreen> createState() => _WelcomeScreenState();
 }
 
-class _WelcomeScreenState extends State<WelcomeScreen> {
-  static const _brandGold = Color(0xFFFFC800);
-  static const _darkSurface = Color(0xEE12131A);
-
+class _WelcomeScreenState extends State<WelcomeScreen>
+    with SingleTickerProviderStateMixin {
   static const _checkOrder = [
     'api',
     'camera',
@@ -55,10 +53,25 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   bool _checking = true;
   bool _ready = false;
   String? _error;
+  bool _showDetails = false;
+
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
+  bool get _isBoxA => AppConfig.boxId == 'box-a';
 
   @override
   void initState() {
     super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2400),
+    )..repeat(reverse: true);
+
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.03).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
     WidgetsBinding.instance.addPostFrameCallback((_) => _runPreflight());
   }
 
@@ -108,6 +121,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   @override
   void dispose() {
+    _pulseController.dispose();
     _preflightTimeout?.cancel();
     _preflightRetry?.cancel();
     super.dispose();
@@ -124,197 +138,192 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          // Background Image
-          Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage(AppConfig.welcomeAsset),
-                fit: BoxFit.cover,
+      backgroundColor:
+          _isBoxA ? const Color(0xFFC71C00) : const Color(0xFF92E0FF),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final screenHeight = constraints.maxHeight;
+
+          // Safe Zone Calculation: Zero Collision with background graphics
+          final double safeTop = _isBoxA
+              ? (240.0 / 800.0) * screenHeight
+              : (150.0 / 900.0) * screenHeight;
+
+          final double safeBottom = _isBoxA
+              ? (645.0 / 800.0) * screenHeight
+              : (780.0 / 900.0) * screenHeight;
+
+          final double safeHeight = safeBottom - safeTop;
+
+          return Stack(
+            children: [
+              // 1. Pristine Graphic Background Asset
+              Positioned.fill(
+                child: Image.asset(
+                  AppConfig.welcomeAsset,
+                  fit: BoxFit.fill,
+                ),
               ),
-            ),
-          ),
-          // Modern Dark Gradient Overlay
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withOpacity(0.25),
-                  Colors.black.withOpacity(0.55),
-                  const Color(0xFF0A0B10).withOpacity(0.92),
-                ],
-                stops: const [0.0, 0.5, 1.0],
-              ),
-            ),
-          ),
-          // Main Content
-          Center(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 280),
-                  // START Button
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: _ready
-                          ? [
-                              BoxShadow(
-                                color: AppConfig.primaryColor.withOpacity(0.55),
-                                blurRadius: 30,
-                                offset: const Offset(0, 8),
-                              )
-                            ]
-                          : [],
-                    ),
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 70, vertical: 24),
-                        backgroundColor: _ready
-                            ? AppConfig.primaryColor
-                            : const Color(0xFF2A2C38),
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor:
-                            const Color(0xFF1E202B).withOpacity(0.8),
-                        disabledForegroundColor: Colors.white38,
-                        elevation: _ready ? 12 : 0,
-                        side: BorderSide(
-                          color: _ready
-                              ? _brandGold
-                              : Colors.white.withOpacity(0.12),
-                          width: 2,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      onPressed: _ready ? _startSession : null,
-                      child: Row(
+
+              // 2. Interactive UI strictly inside Vertical Safe Zone
+              Positioned(
+                top: safeTop,
+                left: 0,
+                right: 0,
+                height: safeHeight,
+                child: Center(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (_checking) ...[
-                            const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: Colors.white70,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                          ] else if (_ready) ...[
-                            const Icon(Icons.play_arrow_rounded,
-                                color: Colors.white, size: 28),
-                            const SizedBox(width: 8),
-                          ],
-                          Text(
-                            _checking ? 'MEMERIKSA...' : 'START',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1.5,
-                            ),
-                          ),
+                          _buildStartButton(),
+                          const SizedBox(height: 18),
+                          _buildPreflightPanel(),
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  // Modern Preflight Panel
-                  _buildPreflightPanel(),
-                  const SizedBox(height: 40),
-                ],
+                ),
               ),
-            ),
-          ),
-        ],
+
+              // 3. Discreet Floating AppCloseButton
+              Positioned(
+                top: 20,
+                right: 20,
+                child: AppCloseButton(
+                  margin: EdgeInsets.zero,
+                  backgroundColor: Colors.black.withOpacity(0.45),
+                ),
+              ),
+            ],
+          );
+        },
       ),
-      bottomNavigationBar: Container(
-        height: 75,
+    );
+  }
+
+  Widget _buildStartButton() {
+    final Color btnBg = _ready
+        ? (_isBoxA ? const Color(0xFFF5C500) : const Color(0xFF0039C8))
+        : const Color(0xFF2A2C38);
+
+    final Color btnFg = _isBoxA ? const Color(0xFF420700) : Colors.white;
+
+    final Color borderColor = _ready
+        ? (_isBoxA ? const Color(0xFFFFF2A3) : Colors.white.withOpacity(0.75))
+        : Colors.white.withOpacity(0.15);
+
+    final Color shadowColor = _ready
+        ? (_isBoxA
+            ? const Color(0xFFF5C500).withOpacity(0.55)
+            : const Color(0xFF0039C8).withOpacity(0.45))
+        : Colors.transparent;
+
+    return ScaleTransition(
+      scale: _ready ? _pulseAnimation : const AlwaysStoppedAnimation(1.0),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
         decoration: BoxDecoration(
-          color: const Color(0xEE0D0E14),
-          border: Border(
-            top: BorderSide(color: Colors.white.withOpacity(0.1)),
-          ),
+          borderRadius: BorderRadius.circular(45),
+          boxShadow: _ready
+              ? [
+                  BoxShadow(
+                    color: shadowColor,
+                    blurRadius: 32,
+                    spreadRadius: 2,
+                    offset: const Offset(0, 6),
+                  ),
+                ]
+              : [],
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 30),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _checking
-                        ? _brandGold
-                        : (_ready ? const Color(0xFF00E676) : Colors.redAccent),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _checking
-                            ? _brandGold.withOpacity(0.6)
-                            : (_ready
-                                ? const Color(0xFF00E676).withOpacity(0.6)
-                                : Colors.redAccent.withOpacity(0.6)),
-                        blurRadius: 10,
-                        spreadRadius: 2,
-                      )
-                    ],
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 64, vertical: 22),
+            backgroundColor: btnBg,
+            foregroundColor: btnFg,
+            disabledBackgroundColor: const Color(0xFF1E202B).withOpacity(0.85),
+            disabledForegroundColor: Colors.white38,
+            elevation: _ready ? 14 : 0,
+            side: BorderSide(color: borderColor, width: 2.5),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(45),
+            ),
+          ),
+          onPressed: _ready ? _startSession : null,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_checking) ...[
+                SizedBox(
+                  width: 26,
+                  height: 26,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.8,
+                    color: btnFg,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Text(
-                  '${AppConfig.boxTitle} • ${_checking ? 'Memeriksa Sistem...' : (_ready ? 'Siap Digunakan' : 'Perhatian Diperlukan')}',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                  ),
+                const SizedBox(width: 14),
+              ] else if (_ready) ...[
+                Icon(
+                  Icons.play_arrow_rounded,
+                  color: btnFg,
+                  size: 34,
                 ),
+                const SizedBox(width: 8),
               ],
-            ),
-            const AppCloseButton(
-              margin: EdgeInsets.zero,
-              backgroundColor: Colors.transparent,
-            ),
-          ],
+              Text(
+                _checking ? 'MEMERIKSA...' : 'START',
+                style: TextStyle(
+                  color: btnFg,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2.0,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildPreflightPanel() {
+    final Color panelBg = _isBoxA
+        ? const Color(0xDD300500)
+        : const Color(0xEEFFFFFF);
+
+    final Color panelBorder = _isBoxA
+        ? const Color(0x55F5C500)
+        : const Color(0x350039C8);
+
+    final Color titleColor = _isBoxA ? Colors.white : const Color(0xFF0039C8);
+    final Color subtitleColor = _isBoxA
+        ? const Color(0xFFFFF0C2).withOpacity(0.8)
+        : const Color(0xFF0039C8).withOpacity(0.75);
+
     return Container(
-      width: 480,
-      padding: const EdgeInsets.all(20),
+      width: 500,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
-        color: _darkSurface,
-        borderRadius: BorderRadius.circular(24),
+        color: panelBg,
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(
           color: _ready
-              ? const Color(0xFF00E676).withOpacity(0.3)
+              ? const Color(0xFF00E676).withOpacity(0.4)
               : (_checking
-                  ? _brandGold.withOpacity(0.35)
+                  ? const Color(0xFFFFC800).withOpacity(0.4)
                   : Colors.redAccent.withOpacity(0.4)),
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.6),
-            blurRadius: 32,
-            offset: const Offset(0, 12),
+            color: Colors.black.withOpacity(0.35),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -326,98 +335,108 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: _checking
-                          ? _brandGold.withOpacity(0.15)
-                          : (_ready
-                              ? const Color(0xFF00E676).withOpacity(0.15)
-                              : Colors.redAccent.withOpacity(0.15)),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      _checking
-                          ? Icons.sync_rounded
-                          : (_ready
-                              ? Icons.verified_rounded
-                              : Icons.warning_amber_rounded),
-                      color: _checking
-                          ? _brandGold
-                          : (_ready
-                              ? const Color(0xFF00E676)
-                              : Colors.redAccent),
-                      size: 22,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _checking
-                            ? 'Pemeriksaan Sistem'
-                            : (_ready
-                                ? 'Semua Komponen Siap'
-                                : 'Sistem Belum Siap'),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                      Text(
-                        _checking
-                            ? 'Memeriksa perangkat & layanan...'
-                            : (_ready
-                                ? 'Semua modul beroperasi normal'
-                                : 'Periksa komponen berlabel merah/kuning'),
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.5),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              if (!_checking)
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(20),
-                    onTap: _runPreflight,
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(7),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.06),
+                        color: _checking
+                            ? const Color(0xFFFFC800).withOpacity(0.18)
+                            : (_ready
+                                ? const Color(0xFF00E676).withOpacity(0.18)
+                                : Colors.redAccent.withOpacity(0.18)),
                         shape: BoxShape.circle,
-                        border: Border.all(
-                            color: Colors.white.withOpacity(0.1), width: 1),
                       ),
-                      child: const Icon(
-                        Icons.refresh_rounded,
-                        color: Colors.white70,
+                      child: Icon(
+                        _checking
+                            ? Icons.sync_rounded
+                            : (_ready
+                                ? Icons.verified_rounded
+                                : Icons.warning_amber_rounded),
+                        color: _checking
+                            ? const Color(0xFFFFC800)
+                            : (_ready
+                                ? const Color(0xFF00E676)
+                                : Colors.redAccent),
                         size: 20,
                       ),
                     ),
-                  ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _checking
+                                ? 'Pemeriksaan Sistem'
+                                : (_ready
+                                    ? 'Semua Komponen Siap'
+                                    : 'Sistem Belum Siap'),
+                            style: TextStyle(
+                              color: titleColor,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                          Text(
+                            _checking
+                                ? 'Memeriksa perangkat & layanan...'
+                                : (_ready
+                                    ? 'Semua modul beroperasi normal'
+                                    : 'Periksa komponen berlabel merah/kuning'),
+                            style: TextStyle(
+                              color: subtitleColor,
+                              fontSize: 11.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      _showDetails
+                          ? Icons.keyboard_arrow_up_rounded
+                          : Icons.keyboard_arrow_down_rounded,
+                      color: titleColor.withOpacity(0.8),
+                      size: 22,
+                    ),
+                    onPressed: () => setState(() => _showDetails = !_showDetails),
+                    tooltip: 'Detail Status',
+                  ),
+                  if (!_checking)
+                    IconButton(
+                      icon: Icon(
+                        Icons.refresh_rounded,
+                        color: titleColor.withOpacity(0.8),
+                        size: 20,
+                      ),
+                      onPressed: _runPreflight,
+                      tooltip: 'Periksa Ulang',
+                    ),
+                ],
+              ),
             ],
           ),
 
           if (_error != null) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.redAccent.withOpacity(0.12),
+                color: Colors.redAccent.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                    color: Colors.redAccent.withOpacity(0.3), width: 1),
+                  color: Colors.redAccent.withOpacity(0.35),
+                  width: 1,
+                ),
               ),
               child: Row(
                 children: [
@@ -428,9 +447,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     child: Text(
                       _error!,
                       style: const TextStyle(
-                          color: Colors.redAccent,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600),
+                        color: Colors.redAccent,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
@@ -438,17 +458,93 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             ),
           ],
 
+          // Quick Hardware Summary Chips (Always Visible)
           if (!_checking) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             Container(
               height: 1,
-              color: Colors.white.withOpacity(0.08),
+              color: titleColor.withOpacity(0.12),
             ),
-            const SizedBox(height: 12),
-            ..._checkOrder.map(_buildCheckRow),
+            const SizedBox(height: 8),
+            _buildQuickHardwareChips(),
+          ],
+
+          // Expandable Detailed Checklist Rows
+          if (!_checking && _showDetails) ...[
+            const SizedBox(height: 8),
+            Container(
+              height: 1,
+              color: titleColor.withOpacity(0.12),
+            ),
+            const SizedBox(height: 8),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 180),
+              child: ListView(
+                shrinkWrap: true,
+                children: _checkOrder.map(_buildCheckRow).toList(),
+              ),
+            ),
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildQuickHardwareChips() {
+    final primaryChecks = ['camera', 'printer', 'api', 'storage'];
+    return Wrap(
+      spacing: 8,
+      runSpacing: 6,
+      children: primaryChecks.map((key) {
+        final check = _checks[key] is Map
+            ? Map<String, dynamic>.from(_checks[key] as Map)
+            : <String, dynamic>{};
+        final ok = check['ok'] == true;
+        final icon = _checkIcons[key] ?? Icons.check_circle_outline;
+        final label = _checkLabels[key] ?? key;
+
+        final Color dotColor =
+            ok ? const Color(0xFF00E676) : Colors.redAccent;
+        final Color textColor =
+            _isBoxA ? Colors.white70 : const Color(0xFF0039C8).withOpacity(0.85);
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: (_isBoxA ? Colors.white : const Color(0xFF0039C8))
+                .withOpacity(0.06),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: dotColor.withOpacity(0.35),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: dotColor,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Icon(icon, size: 14, color: textColor),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -469,87 +565,50 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       statusColor = const Color(0xFF00E676);
       statusText = message.isNotEmpty && message != 'OK' ? message : 'Ready';
     } else if (isSearching) {
-      statusColor = _brandGold;
+      statusColor = const Color(0xFFFFC800);
       statusText = 'Mencari...';
     } else {
-      statusColor = required ? Colors.redAccent : _brandGold;
+      statusColor = required ? Colors.redAccent : const Color(0xFFFFC800);
       statusText = message;
     }
 
+    final Color textColor =
+        _isBoxA ? Colors.white.withOpacity(0.9) : const Color(0xFF0039C8);
+
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 3.5),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      margin: const EdgeInsets.symmetric(vertical: 2.5),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.035),
-        borderRadius: BorderRadius.circular(12),
+        color: (_isBoxA ? Colors.white : const Color(0xFF0039C8))
+            .withOpacity(0.04),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: ok
-              ? Colors.white.withOpacity(0.05)
-              : statusColor.withOpacity(0.25),
+              ? Colors.transparent
+              : statusColor.withOpacity(0.3),
           width: 1,
         ),
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.06),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              icon,
-              color: ok ? Colors.white70 : statusColor,
-              size: 16,
-            ),
-          ),
-          const SizedBox(width: 12),
+          Icon(icon, color: ok ? statusColor : statusColor, size: 15),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               label,
               style: TextStyle(
-                color: Colors.white.withOpacity(0.9),
-                fontSize: 13,
+                color: textColor,
+                fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: statusColor.withOpacity(0.35),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: statusColor,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 160),
-                  child: Text(
-                    statusText,
-                    style: TextStyle(
-                      color: statusColor,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
+          Text(
+            statusText,
+            style: TextStyle(
+              color: statusColor,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],

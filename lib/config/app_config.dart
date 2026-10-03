@@ -7,7 +7,7 @@ class AppConfig {
   static String get socketBaseUrl =>
       dotenv.env['SOCKET_BASE_URL'] ?? 'http://127.0.0.1:3000';
   static String get welcomeAsset =>
-      dotenv.env['WELCOME_ASSET'] ?? 'assets/box_a/IMG_5576.PNG';
+      dotenv.env['WELCOME_ASSET'] ?? 'assets/box_a/welcome_400.png';
 
   static double get windowX =>
       double.tryParse(dotenv.env['WINDOW_X'] ?? '') ?? 0;
