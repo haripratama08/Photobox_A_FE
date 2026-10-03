@@ -3,7 +3,7 @@ import 'package:photobox_pro/services/socket_services.dart';
 import 'package:photobox_pro/services/storage_services.dart';
 import 'package:photobox_pro/viewmodels/setting_viewmodel.dart';
 import 'package:provider/provider.dart';
-import 'package:photobox_pro/widgets/app_close_button.dart';
+
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -21,7 +21,7 @@ class SettingsScreen extends StatelessWidget {
             appBar: AppBar(
               title: const Text("Pengaturan Kamera"),
               backgroundColor: const Color(0xFF1A1A1A),
-              actions: const [AppCloseButton()],
+
             ),
             body: vm.isLoading
                 ? const Center(

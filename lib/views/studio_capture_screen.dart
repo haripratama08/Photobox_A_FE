@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:photobox_pro/config/app_config.dart';
 import 'package:photobox_pro/services/socket_services.dart';
 import 'package:photobox_pro/services/storage_services.dart';
-import 'package:photobox_pro/widgets/app_close_button.dart';
+
 import 'package:provider/provider.dart';
 import '../viewmodels/capture_viewmodel.dart';
 import 'welcome_screen.dart';
@@ -135,7 +135,7 @@ class StudioCaptureScreen extends StatelessWidget {
                             builder: (context) => const SettingsScreen())),
                   ),
                 ),
-                const AppCloseButton(),
+
               ],
             ),
             body: Stack(

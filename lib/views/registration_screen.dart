@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:photobox_pro/widgets/app_close_button.dart';
 import 'frame_selection_screen.dart';
 import '../widgets/custom_keyboard.dart';
 
@@ -67,7 +66,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
-        actions: const [AppCloseButton()],
       ),
       extendBodyBehindAppBar: true, // Agar background memenuhi layar
       body: GestureDetector(

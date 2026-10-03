@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:photobox_pro/services/socket_services.dart';
 import 'package:provider/provider.dart';
-import 'package:photobox_pro/widgets/app_close_button.dart';
+
 import '../viewmodels/frame_selection_viewmodel.dart';
 import 'studio_capture_screen.dart';
 
@@ -54,7 +54,7 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen> {
               backgroundColor: Colors.transparent,
               elevation: 0,
               iconTheme: const IconThemeData(color: Colors.white),
-              actions: const [AppCloseButton()],
+
             ),
             body: Container(
               // Background senada dengan Registration Screen
